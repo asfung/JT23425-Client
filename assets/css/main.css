@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@import "tailwindcss-primeui";
+@custom-variant dark (&:where(.my-app-dark, .my-app-dark *));
+
+/* @layer tailwind-base, primeVue, tailwind-utilities; */
+/**/
+/* @layer tailwind-base { */
+/*     @tailwind base; */
+/* } */
+/**/
+/* @layer tailwind-utilities { */
+/*     @tailwind components; */
+/*     @tailwind utilities; */
+/* } */
+/**/
+/**/
