@@ -46,7 +46,7 @@
       <Column field="agama" header="Agama" headerClass="bg-gray-100"></Column>
       <Column field="no_hp" header="No HP" headerClass="bg-gray-100"></Column>
       <Column field="unit_kerja.name" header="Unit Kerja" headerClass="bg-gray-100"></Column>
-      <Column header="Aksi" :style="{ width: '150px' }" headerClass="bg-gray-100">
+      <Column header="Action" :style="{ width: '150px' }" headerClass="bg-gray-100">
         <template #body="{ data }">
           <div class="flex gap-2">
             <Button
