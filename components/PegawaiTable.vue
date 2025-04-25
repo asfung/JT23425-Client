@@ -13,8 +13,28 @@
       :loading="loading"
       >
       <template #header>
-        <div class="flex items-center justify-between flex-wrap gap-4">
+        <div class="flex items-center justify-between flex-wrap gap-4 w-full">
           <span class="text-2xl font-bold text-gray-900 dark:text-white">Daftar Pegawai</span>
+          
+          <div class="flex gap-2 items-center flex-wrap">
+            <span class="p-input-icon-left">
+              <!-- <i class="pi pi-search mr-2" /> -->
+              <input
+                v-model="search"
+                type="text"
+                placeholder="Cari pegawai..."
+                class="p-inputtext p-component"
+                @input="onSearch"
+              />
+            </span>
+
+            <Button
+              label="Tambah Pegawai"
+              icon="pi pi-plus"
+              class="bg-green-600 text-white hover:bg-green-700"
+              @click="openDialog()"
+            />
+          </div>
         </div>
       </template>
       <Column field="no" header="No" headerClass="bg-gray-100"></Column>
@@ -41,20 +61,15 @@
           {{ data.jenis_kelamin === 'P' ? 'Perempuan' : 'Laki-laki' }}
         </template>
       </Column>
+      <Column field="unit_kerja.label" header="Unit Kerja" headerClass="bg-gray-100"></Column>
       <Column field="jabatan" header="Jabatan" headerClass="bg-gray-100"></Column>
       <Column field="tempat_tugas" header="Tempat Tugas" headerClass="bg-gray-100"></Column>
       <Column field="agama" header="Agama" headerClass="bg-gray-100"></Column>
       <Column field="no_hp" header="No HP" headerClass="bg-gray-100"></Column>
-      <Column field="unit_kerja.name" header="Unit Kerja" headerClass="bg-gray-100"></Column>
+      <!-- <Column field="unit_kerja.name" header="Unit Kerja" headerClass="bg-gray-100"></Column> -->
       <Column header="Action" :style="{ width: '150px' }" headerClass="bg-gray-100">
         <template #body="{ data }">
           <div class="flex gap-2">
-            <Button
-              icon="pi pi-eye"
-              class="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-600"
-              @click="viewPegawai(data)"
-              title="Lihat"
-            />
             <Button
               icon="pi pi-pencil"
               class="bg-yellow-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-yellow-600"
@@ -74,25 +89,44 @@
         <div class="text-gray-600">Total: {{ meta.total }} pegawai</div>
       </template>
     </DataTable>
+
+    <PegawaiForm
+      v-model="dialogVisible"
+      :pegawaiData="selectedPegawai"
+      @save="handleSave"
+    />
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { usePegawaiStore } from '~/stores/Pegawai'; 
+import { useDepartmentStore } from '~/stores/Department';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Button from 'primevue/button';
 
+
+const { $pegawaiImageFetch } = useNuxtApp();
+const imageSrc = ref({});
+
 const pegawai = ref([]);
 const loading = ref(false);
 const pegawaiStore = usePegawaiStore();
+const departmentStore = useDepartmentStore();
 const meta = ref({
   current_page: 1,
   last_page: 1,
   per_page: 10,
   total: 0,
 });
+
+const dialogVisible = ref(false);
+const selectedPegawai = ref({});
+
+const search = ref('');
+let searchTimeout = null;
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -105,15 +139,36 @@ const formatDate = (dateString) => {
 
 const fetchPegawai = async (page = 1) => {
   loading.value = true;
-  const response = await pegawaiStore.getPegawai({ page, per_page: meta.value.per_page });
+  const params = {
+    page,
+    per_page: meta.value.per_page,
+    search: search.value || '',
+  };
+
+  if (departmentStore.unitKerjaIdSelected) {
+    params.unit_kerja_id = departmentStore.unitKerjaIdSelected;
+  }
+  if (departmentStore.jabatanSelected) {
+    params.jabatan = departmentStore.jabatanSelected;
+  }
+
+  console.log('fetchPegawai params:', params); 
+  const response = await pegawaiStore.getPegawai(params);
   if (response.status === 200) {
     pegawai.value = response.data;
     meta.value = response.response.data.meta;
   } else {
+    pegawai.value = [];
     console.error(response.message);
   }
   loading.value = false;
 };
+
+const openDialog = (data = null) => {
+  selectedPegawai.value = data ? { ...data } : {};
+  dialogVisible.value = true;
+};
+
 
 const onPage = (event) => {
   const newPage = event.page + 1;
@@ -121,14 +176,29 @@ const onPage = (event) => {
   fetchPegawai(newPage);
 };
 
-const viewPegawai = (data) => {
-  console.log('View Pegawai:', data);
-  alert(`Melihat data: ${data.nama}`);
+const onSearch = () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    fetchPegawai(1);
+  }, 400); 
+};
+
+const handleSave = async (form) => {
+  if (form.id) {
+    console.log(form)
+    // await pegawaiStore.updatePegawai(form.id, form);
+    alert('data berhasil diperbarui.');
+  } else {
+    console.log(form)
+    // await pegawaiStore.createPegawai(form);
+    alert('data berhasil ditambahkan.');
+  }
+  await fetchPegawai(meta.value.current_page);
 };
 
 const editPegawai = (data) => {
-  console.log('Edit Pegawai:', data); 
-  alert(`Mengedit data: ${data.nama}`);
+  console.log('pegawai edit: ', data); 
+  openDialog(data);
 };
 
 const deletePegawai = async (data) => {
@@ -139,7 +209,22 @@ const deletePegawai = async (data) => {
   }
 };
 
-// Initial fetch
+watch(
+  () => [departmentStore.unitKerjaIdSelected, departmentStore.jabatanSelected],
+  (newVal, oldVal) => {
+    fetchPegawai(1); 
+  }
+);
+
+watchEffect(() => {
+  pegawai.value.forEach(async (p) => {
+    if (!imageSrc.value[p.id]) {
+      const url = await $pegawaiImageFetch(p.id, p.nama);
+      imageSrc.value[p.id] = url;
+    }
+  });
+})
+
 onMounted(() => {
   fetchPegawai();
 });
