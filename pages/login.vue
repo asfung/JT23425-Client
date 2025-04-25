@@ -22,18 +22,18 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
-import { zodResolver } from '@primevue/forms/resolvers/zod';
-import { z } from 'zod';
-import { Form, FormField } from '@primevue/forms';
-import { useToast } from 'primevue/usetoast';
-import { useRouter } from 'vue-router';
-import InputText from 'primevue/inputtext';
-import Password from 'primevue/password';
-import Message from 'primevue/message';
-import Button from 'primevue/button';
+import { reactive } from 'vue'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { z } from 'zod'
+import { Form, FormField } from '@primevue/forms'
+import { useToast } from 'primevue/usetoast'
+import { useRouter } from 'vue-router'
+import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
+import Message from 'primevue/message'
+import Button from 'primevue/button'
 
-import { useAuthStore } from '~/stores/Auth';
+import { useAuthStore } from '~/stores/Auth'
 
 const toast = useToast();
 const router = useRouter();
@@ -41,8 +41,8 @@ const authStore = useAuthStore()
 
 const resolver = zodResolver(
   z.object({
-    email: z.string().min(1, { message: 'Email is required.' }).email({ message: 'Invalid email format.' }),
-    password: z.string().min(1, { message: 'Password is required.' })
+    email: z.string().min(1, { message: 'Email is required.' }).email({ message: 'Harus Berupa Email' }),
+    password: z.string().min(1, { message: 'Password Harus Diisi.' })
   })
 );
 
@@ -51,19 +51,19 @@ const onFormSubmit = async ({ valid, states }) => {
     toast.add({ 
       severity: 'info', 
       summary: 'Logging in...', 
-      detail: 'Please wait', 
+      detail: 'Harap Tunggu', 
       life: 0,
-    });
+    })
 
     try {
-      const email = states.email.value;
-      const password = states.password.value;
-      const payload = { email: email, password: password };
+      const email = states.email.value
+      const password = states.password.value
+      const payload = { email: email, password: password }
       
-      const response = await authStore.login(payload);
+      const response = await authStore.login(payload)
       
       if(response && response.status === 200){
-        toast.removeAllGroups();
+        toast.removeAllGroups()
         console.log(response)
         const token = response.data.authorization.token
         authStore.setToken(token)
@@ -72,29 +72,29 @@ const onFormSubmit = async ({ valid, states }) => {
           summary: 'Login Successful', 
           detail: 'Redirecting...', 
           life: 2000 
-        });
+        })
         setTimeout(() => {
           // useNuxtApp().$router.push('/');
           window.location.href = '/'
-        }, 2000);
+        }, 2000)
       }else{
-        toast.removeAllGroups();
+        toast.removeAllGroups()
         toast.add({
           severity: 'error',
           summary: 'Login Failed',
           detail: response.message,
           life: 3000
-        });
+        })
       }
 
     } catch (error) {
-      toast.removeAllGroups();
+      toast.removeAllGroups()
       toast.add({ 
         severity: 'error', 
         summary: 'Login Failed', 
         detail: error.message || 'Invalid credentials', 
         life: 3000 
-      });
+      })
     }
   }
 };

@@ -29,7 +29,7 @@
     <div class="flex flex-1 overflow-hidden relative">
       <aside
         :class="[
-          'bg-gray-300 border-r text-accent-one overflow-y-auto lg:relative lg:translate-x-0 transition-transform duration-200 ease-in-out',
+          'bg-gray-300 text-accent-one overflow-y-auto lg:relative lg:translate-x-0 transition-transform duration-200 ease-in-out',
           isSidebarOpen ? 'absolute z-30 w-64 h-full translate-x-0' : 'absolute -translate-x-full lg:w-64 lg:static',
         ]"
         >

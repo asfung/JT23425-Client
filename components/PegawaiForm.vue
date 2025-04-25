@@ -9,7 +9,7 @@
     <div class="grid grid-cols-2 gap-4">
       <div class="flex flex-col col-span-2">
         <label for="file">Upload File</label>
-        <div v-if="form.id" class="mb-2">
+        <div v-if="form.id || form.file" class="mb-2">
           <img
             :src="filePreviewUrl"
             alt="Preview"
@@ -145,16 +145,16 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, defineEmits } from 'vue';
-import Dialog from 'primevue/dialog';
-import Button from 'primevue/button';
-import AutoComplete from 'primevue/autocomplete';
-import InputText from 'primevue/inputtext';
-import DatePicker from 'primevue/datepicker';
-import Select from 'primevue/select';
-import RadioButton from 'primevue/radiobutton';
-import FileUpload from 'primevue/fileupload'; 
-import { useFormOptions } from '~/composables/useFormOptions';
+import Dialog from 'primevue/dialog'
+import Button from 'primevue/button'
+import AutoComplete from 'primevue/autocomplete'
+import InputText from 'primevue/inputtext'
+import DatePicker from 'primevue/datepicker'
+import Select from 'primevue/select'
+import RadioButton from 'primevue/radiobutton'
+import FileUpload from 'primevue/fileupload'
+import { useFormOptions } from '~/composables/useFormOptions'
+import { useToast } from 'primevue/usetoast'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -162,38 +162,54 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
-});
-const errors = ref({});
+})
+const errors = ref({})
+const toast = useToast()
 
-const emit = defineEmits(['update:modelValue', 'save']);
-const visible = ref(props.modelValue);
+const emit = defineEmits(['update:modelValue', 'save'])
+const visible = ref(props.modelValue)
 
-watch(() => props.modelValue, val => (visible.value = val));
-watch(visible, val => emit('update:modelValue', val));
+watch(() => props.modelValue, val => (visible.value = val))
+watch(visible, val => emit('update:modelValue', val))
 
-const form = ref({ ...props.pegawaiData, file: null });
+const form = ref({ 
+  ...props.pegawaiData, 
+  file: null,
+  tempat_lahir: props.pegawaiData.tempat_lahir ? { name: props.pegawaiData.tempat_lahir } : null,
+  tempat_tugas: props.pegawaiData.tempat_tugas ? { name: props.pegawaiData.tempat_tugas } : null,
+})
 
 watch(() => props.pegawaiData, async (val) => {
-  form.value = { ...val, file: val.file?? null };
-  if (val.unit_kerja_id) {
-    await getJabatanByUnitKerjaFetch(val.unit_kerja_id);
+  form.value = { 
+    ...val, 
+    file: val.file?? null,
+    tempat_lahir: val.tempat_lahir ? { name: val.tempat_lahir } : null,
+    tempat_tugas: val.tempat_tugas ? { name: val.tempat_tugas } : null,
   }
-});
+  if (val.unit_kerja_id) {
+    await getJabatanByUnitKerjaFetch(val.unit_kerja_id)
+  }
+})
 
 const filePreviewUrl = computed(() => {
   const { $randomProfileImage, $getImageUrl } = useNuxtApp()
   const media = form.value.media;
 
+  if (form.value.file && form.value.file instanceof Blob) {
+    return URL.createObjectURL(form.value.file)
+  }
+
   if (media?.path?.startsWith('blob:')) {
-    return media.path;
+    return media.path
   }
 
   if (media?.path) {
-    return $getImageUrl(media.path);
+    return $getImageUrl(media.path)
   }
 
-  return $randomProfileImage(form.value.nama);
-});
+  return $randomProfileImage(form.value.nama)
+})
+
   // return form.value.media ? $getImageUrl(form.value.media.path) : $randomProfileImage(form.value.nama)
 
 const {
@@ -203,17 +219,17 @@ const {
   getUnitKerja,
   getJabatanByUnitKerja,
   searchCities
-} = useFormOptions();
+} = useFormOptions()
 
-const unitKerjaList = ref([]);
-const jabatanList = ref([]);
-const golonganList = ref([]);
-const eselonList = ref([]);
-const agamaList = ref([]);
-const citiesList = ref([]);
+const unitKerjaList = ref([])
+const jabatanList = ref([])
+const golonganList = ref([])
+const eselonList = ref([])
+const agamaList = ref([])
+const citiesList = ref([])
 
-const filteredTempatLahir = ref([]);
-const filteredTempatTugas = ref([]);
+const filteredTempatLahir = ref([])
+const filteredTempatTugas = ref([])
 
 const fetchFormOptions = async () => {
   const [gol, es, agm, unit, cities] = await Promise.all([
@@ -222,102 +238,133 @@ const fetchFormOptions = async () => {
     getAgama(),
     getUnitKerja(),
     searchCities('')
-  ]);
+  ])
 
-  if (gol.status === 200) golonganList.value = gol.data;
-  if (es.status === 200) eselonList.value = es.data;
-  if (agm.status === 200) agamaList.value = agm.data;
-  if (unit.status === 200) unitKerjaList.value = unit.data;
-  if (cities.status === 200) citiesList.value = cities.data;
-};
+  if (gol.status === 200) golonganList.value = gol.data
+  if (es.status === 200) eselonList.value = es.data
+  if (agm.status === 200) agamaList.value = agm.data
+  if (unit.status === 200) unitKerjaList.value = unit.data
+  if (cities.status === 200) citiesList.value = cities.data
+}
 
 const getJabatanByUnitKerjaFetch = async (id) => {
-  const response = await getJabatanByUnitKerja(id);
+  const response = await getJabatanByUnitKerja(id)
   if (response.status === 200) {
-    jabatanList.value = response.data;
+    jabatanList.value = response.data
   }
-};
+}
 
 const onUnitKerjaChange = async () => {
-  form.value.jabatan = '';
+  form.value.jabatan = ''
   if (form.value.unit_kerja_id) {
-    await getJabatanByUnitKerjaFetch(form.value.unit_kerja_id);
+    await getJabatanByUnitKerjaFetch(form.value.unit_kerja_id)
   } else {
-    jabatanList.value = [];
+    jabatanList.value = []
   }
 };
 
 const onFileSelect = (event) => {
-  const selectedFile = event.files?.[0] || null;
-  form.value.file = selectedFile;
-  if (selectedFile) {
-    form.value.media = {
-      path: URL.createObjectURL(selectedFile)
-    };
+  if (event.files && event.files[0] && event.files[0].type.startsWith('image/')) {
+    console.log(event.files[0])
+    form.value.file = event.files[0];
+  } else {
+    toast.add({
+      severity: 'error',
+      summary: 'Invalid File Type',
+      detail: 'Please select a valid image file.',
+      life: 3000,
+    });
   }
+
 };
 
 const searchTempatLahir = async ({ query }) => {
-  const response = await searchCities(query);
+  const response = await searchCities(query)
   if (response.status === 200) {
-    filteredTempatLahir.value = response.data;
+    filteredTempatLahir.value = response.data
   }
-};
+}
 
 const searchTempatTugas = async ({ query }) => {
-  const response = await searchCities(query);
+  const response = await searchCities(query)
   if (response.status === 200) {
-    filteredTempatTugas.value = response.data;
+    filteredTempatTugas.value = response.data
   }
-};
+}
 
 const close = () => {
-  visible.value = false;
-};
+  visible.value = false
+}
 
 const submit = () => {
   if (!validateForm()) return;
-  const payload = {
-    ...form.value,
-    tempat_lahir: form.value.tempat_lahir?.name || '',
-    tempat_tugas: form.value.tempat_tugas?.name || '',
-    file: form.value.file,  
-  };
 
-  emit('save', payload);
+  const formData = new FormData();
+
+  const tglLahir = form.value.tgl_lahir
+    ? new Date(form.value.tgl_lahir).toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).split('/').join('-')
+    : '';
+
+  formData.append('id', form.value.id || '');
+  formData.append('nip', form.value.nip || '');
+  formData.append('nama', form.value.nama || '');
+  formData.append('tempat_lahir', form.value.tempat_lahir?.name || '');
+  formData.append('tgl_lahir', tglLahir);
+  formData.append('jenis_kelamin', form.value.jenis_kelamin || '');
+  formData.append('jabatan', form.value.jabatan || '');
+  formData.append('unit_kerja_id', form.value.unit_kerja_id || '');
+  formData.append('alamat', form.value.alamat || '');
+  formData.append('gol', form.value.gol || '');
+  formData.append('eselon', form.value.eselon || '');
+  formData.append('tempat_tugas', form.value.tempat_tugas?.name || '');
+  formData.append('agama', form.value.agama || '');
+  formData.append('no_hp', form.value.no_hp || '');
+  formData.append('npwp', form.value.npwp || '');
+
+  if (form.value.file instanceof File) {
+    formData.append('image', form.value.file);
+  }
+
+  emit('save', formData);
   visible.value = false;
 };
 
 onMounted(() => {
-  fetchFormOptions();
+  fetchFormOptions()
 });
 
 
 const validateForm = () => {
-  errors.value = {};
+  errors.value = {}
 
-  if (!form.value.nip) errors.value.nip = 'NIP wajib diisi.';
-  if (!form.value.nama) errors.value.nama = 'Nama wajib diisi.';
-  if (!form.value.tempat_lahir?.name) errors.value.tempat_lahir = 'Tempat lahir wajib diisi.';
-  if (!form.value.tgl_lahir) errors.value.tgl_lahir = 'Tanggal lahir wajib diisi.';
+  if (!form.value.nip) errors.value.nip = 'NIP wajib diisi.'
+  if (!form.value.nama) errors.value.nama = 'Nama wajib diisi.'
+  if (!form.value.tempat_lahir?.name) errors.value.tempat_lahir = 'Tempat lahir wajib diisi.'
+  // if (!form.value.tempat_lahir?.name && !form.value.tempat_lahir) {
+  //   errors.value.tempat_lahir = 'Tempat lahir wajib diisi.'
+  // }
+  if (!form.value.tgl_lahir) errors.value.tgl_lahir = 'Tanggal lahir wajib diisi.'
   if (!form.value.jenis_kelamin || !['L', 'P'].includes(form.value.jenis_kelamin)) {
-    errors.value.jenis_kelamin = 'Jenis kelamin wajib dipilih.';
+    errors.value.jenis_kelamin = 'Jenis kelamin wajib dipilih.'
   }
-  if (!form.value.jabatan) errors.value.jabatan = 'Jabatan wajib diisi.';
-  if (!form.value.unit_kerja_id) errors.value.unit_kerja_id = 'Unit Kerja wajib dipilih.';
+  if (!form.value.jabatan) errors.value.jabatan = 'Jabatan wajib diisi.'
+  if (!form.value.unit_kerja_id) errors.value.unit_kerja_id = 'Unit Kerja wajib dipilih.'
 
-  const file = form.value.file;
+  const file = form.value.file
   if (file) {
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/svg+xml'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/svg+xml']
     if (!validTypes.includes(file.type)) {
-      errors.value.file = 'File harus berupa gambar dengan format jpg, png, jpeg, gif, atau svg.';
+      errors.value.file = 'File harus berupa gambar dengan format jpg, png, jpeg, gif, atau svg.'
     }
     if (file.size > 2048 * 1024) {
-      errors.value.file = 'Ukuran file maksimal 2MB.';
+      errors.value.file = 'Ukuran file maksimal 5 MB.'
     }
   }
-
-  return Object.keys(errors.value).length === 0;
-};
+  return Object.keys(errors.value).length === 0
+}
 
 </script>

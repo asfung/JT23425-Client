@@ -11,66 +11,81 @@
 </template>
 
 <script setup>
-import Tree from 'primevue/tree';
-import { ref, onMounted } from 'vue'
+import Tree from 'primevue/tree'
 import { useDepartmentStore } from '~/stores/Department'
+import { useToast } from 'primevue/usetoast'
 
-const treeData = ref([])
-const selectedKeys = ref({})
-const expandedKeys = ref({})
-// const selectedKeys = ref({ 'root-pegawai': true });
+const treeData = ref([]);
+const selectedKeys = ref({ 'root-pegawai': true })
+const expandedKeys = ref({ 'root-pegawai': true })
 const departmentStore = useDepartmentStore()
+const toast = useToast()
 
 const fetchDepartmentTree = async () => {
-  const fetch = await departmentStore.getTreeUnitKerja()
-  const units = fetch.data
+  try {
+    const fetch = await departmentStore.getTreeUnitKerja()
 
-  const buildTree = (nodes) => {
-    return nodes.map((node) => ({
-      key: `unit-${node.id}`,
-      label: node.name,
-      data: node,
-      children: [
-        ...node.children ? buildTree(node.children) : [],
-        ...node.jabatans.map(j => ({
-          key: `jabatan-${j.id}`,
-          label: j.name,
-          icon: 'pi pi-user',
-          data: j,
-          expanded: true,
-        }))
-      ]
-    }))
-  }
-  // treeData.value = buildTree(units)
-  treeData.value = [
-    {
-      key: 'root-pegawai',
-      label: 'Pegawai',
-      expanded: true,
-      children: buildTree(units)
+    if (fetch.status !== 200) {
+      toast.add({
+        severity: 'error',
+        summary: 'Department Tree',
+        detail: fetch.message,
+        life: 3000,
+      })
+      return;
     }
-  ]
-  selectedKeys.value = { 'root-pegawai': true };
-  expandedKeys.value = { 'root-pegawai': true }; 
+
+    const units = fetch.data;
+
+    const buildTree = (nodes) => {
+      return nodes.map((node) => ({
+        key: `unit-${node.id}`,
+        label: node.name,
+        data: node,
+        children: [
+          ...(node.children ? buildTree(node.children) : []),
+          ...node.jabatans.map((j) => ({
+            key: `jabatan-${j.id}`,
+            label: j.name,
+            // icon: 'pi pi-user',
+            data: j,
+          })),
+        ],
+      }))
+    }
+
+    treeData.value = [
+      {
+        key: 'root-pegawai',
+        label: 'Pegawai',
+        children: buildTree(units),
+      },
+    ]
+  } catch (e) {
+    console.error(e)
+  }
 }
 
 const onNodeSelect = (event) => {
-  console.log('Node selected:', event.node);
-  console.log(event)
+  if (!event) {
+    console.warn('event not exists')
+    return;
+  }
+  departmentStore.setSelectedNode(event)
 };
 
 const onNodeUnselect = (event) => {
-  if (event.node.key === 'root-pegawai') {
-    selectedKeys.value = { 'root-pegawai': true };
+  if (!event) {
+    console.warn('event not exists')
+    return;
   }
-};
-
-// watch(selectedKeys, (newValue) => {
-//   if (!newValue['root-pegawai'] && Object.keys(newValue).length === 0) {
-//     selectedKeys.value = { 'root-pegawai': true };
-//   }
-// }, { deep: true });
+  if (event.key === 'root-pegawai') {
+    selectedKeys.value = { 'root-pegawai': true }
+    departmentStore.clearSelection()
+  } else {
+    departmentStore.clearSelection()
+  }
+}
 
 onMounted(() => {
   fetchDepartmentTree()

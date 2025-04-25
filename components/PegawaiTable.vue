@@ -34,6 +34,12 @@
               class="bg-green-600 text-white hover:bg-green-700"
               @click="openDialog()"
             />
+
+            <Button
+              label="Export PDF"
+              icon="pi pi-file-pdf"
+              @click="handleExportPDF"
+            />
           </div>
         </div>
       </template>
@@ -41,7 +47,7 @@
       <Column header="Profil" :style="{ width: '80px' }">
         <template #body="{ data }">
           <img
-            :src="data.media ? data.media.url : $randomProfileImage(data.nama)"
+            :src="data.media ? $getImageUrl(data.media.path) : $randomProfileImage(data.nama)"
             :alt="data.nama"
             class="w-10 h-10 rounded-full object-cover border border-gray-200"
           />
@@ -64,6 +70,8 @@
       <Column field="unit_kerja.label" header="Unit Kerja" headerClass="bg-gray-100"></Column>
       <Column field="jabatan" header="Jabatan" headerClass="bg-gray-100"></Column>
       <Column field="tempat_tugas" header="Tempat Tugas" headerClass="bg-gray-100"></Column>
+      <Column field="gol" header="Golongan" headerClass="bg-gray-100"></Column>
+      <Column field="eselon" header="Eselon" headerClass="bg-gray-100"></Column>
       <Column field="agama" header="Agama" headerClass="bg-gray-100"></Column>
       <Column field="no_hp" header="No HP" headerClass="bg-gray-100"></Column>
       <!-- <Column field="unit_kerja.name" header="Unit Kerja" headerClass="bg-gray-100"></Column> -->
@@ -71,17 +79,24 @@
         <template #body="{ data }">
           <div class="flex gap-2">
             <Button
+              severity="secondary"
               icon="pi pi-pencil"
-              class="bg-yellow-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-yellow-600"
               @click="editPegawai(data)"
-              title="Edit"
-            />
+              class="text-yellow-400"
+              title="Edit">
+              <template #icon>
+                <i class="pi pi-pencil dark:text-white"></i> 
+              </template>
+            </Button>
             <Button
+              severity="danger"
               icon="pi pi-trash"
-              class="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600"
-              @click="deletePegawai(data)"
-              title="Hapus"
-            />
+              @click="deletePegawai($event, data)"
+              title="Hapus">
+              <template #icon>
+                <i class="pi pi-trash dark:text-white"></i> 
+              </template>
+            </Button>
           </div>
         </template>
       </Column>
@@ -96,25 +111,28 @@
       @save="handleSave"
     />
 
+    <ConfirmPopup></ConfirmPopup>
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import { usePegawaiStore } from '~/stores/Pegawai'; 
-import { useDepartmentStore } from '~/stores/Department';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import Button from 'primevue/button';
+import { ref, onMounted, watch } from 'vue'
+import { usePegawaiStore } from '~/stores/Pegawai'
+import { useDepartmentStore } from '~/stores/Department'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Button from 'primevue/button'
+import { useToast } from 'primevue/usetoast'
+import { useConfirm } from "primevue/useconfirm";
+import ConfirmPopup from 'primevue/confirmpopup';
 
-
-const { $pegawaiImageFetch } = useNuxtApp();
-const imageSrc = ref({});
-
+const toast = useToast()
+const confirm = useConfirm();
 const pegawai = ref([]);
-const loading = ref(false);
-const pegawaiStore = usePegawaiStore();
-const departmentStore = useDepartmentStore();
+const loading = ref(false)
+const pegawaiStore = usePegawaiStore()
+const departmentStore = useDepartmentStore()
 const meta = ref({
   current_page: 1,
   last_page: 1,
@@ -122,20 +140,20 @@ const meta = ref({
   total: 0,
 });
 
-const dialogVisible = ref(false);
-const selectedPegawai = ref({});
+const dialogVisible = ref(false)
+const selectedPegawai = ref({})
 
-const search = ref('');
-let searchTimeout = null;
+const search = ref('')
+let searchTimeout = null
 
 const formatDate = (dateString) => {
-  const date = new Date(dateString);
+  const date = new Date(dateString)
   return date.toLocaleDateString('id-ID', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
-  });
-};
+  })
+}
 
 const fetchPegawai = async (page = 1) => {
   loading.value = true;
@@ -143,89 +161,178 @@ const fetchPegawai = async (page = 1) => {
     page,
     per_page: meta.value.per_page,
     search: search.value || '',
-  };
+  }
 
   if (departmentStore.unitKerjaIdSelected) {
-    params.unit_kerja_id = departmentStore.unitKerjaIdSelected;
+    params.unit_kerja_id = departmentStore.unitKerjaIdSelected
   }
   if (departmentStore.jabatanSelected) {
-    params.jabatan = departmentStore.jabatanSelected;
+    params.jabatan = departmentStore.jabatanSelected
   }
 
-  console.log('fetchPegawai params:', params); 
-  const response = await pegawaiStore.getPegawai(params);
+  // console.log('fetchPegawai params:', params)
+  const response = await pegawaiStore.getPegawai(params)
   if (response.status === 200) {
-    pegawai.value = response.data;
-    meta.value = response.response.data.meta;
+    pegawai.value = response.data
+    meta.value = response.response.data.meta
   } else {
-    pegawai.value = [];
-    console.error(response.message);
+    pegawai.value = []
+    console.error(response.message)
   }
-  loading.value = false;
+  loading.value = false
 };
 
 const openDialog = (data = null) => {
-  selectedPegawai.value = data ? { ...data } : {};
-  dialogVisible.value = true;
-};
+  selectedPegawai.value = data ? { ...data } : {}
+  dialogVisible.value = true
+}
 
 
 const onPage = (event) => {
-  const newPage = event.page + 1;
+  const newPage = event.page + 1
   meta.value.per_page = event.rows
-  fetchPegawai(newPage);
-};
+  fetchPegawai(newPage)
+}
 
 const onSearch = () => {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     fetchPegawai(1);
-  }, 400); 
-};
+  }, 400)
+}
 
-const handleSave = async (form) => {
-  if (form.id) {
-    console.log(form)
-    // await pegawaiStore.updatePegawai(form.id, form);
-    alert('data berhasil diperbarui.');
-  } else {
-    console.log(form)
-    // await pegawaiStore.createPegawai(form);
-    alert('data berhasil ditambahkan.');
+const handleSave = async (formData) => {
+  try {
+    toast.add({
+      severity: 'info',
+      summary: formData.get('id') ? 'Update Pegawai Status' : 'Create Pegawai Status',
+      detail: 'Harap Tunggu.....',
+      life: 0,
+    })
+    let fetch;
+    if (formData.get('id')) {
+      fetch = await pegawaiStore.updatePegawai(formData, formData.get('id'));
+    } else {
+      fetch = await pegawaiStore.createPegawai(formData);
+    }
+
+    if (fetch.status === 200 || fetch.status === 201) {
+      toast.removeAllGroups()
+      toast.add({
+        severity: 'success',
+        summary: formData.get('id') ? 'Update Pegawai Success' : 'Create Pegawai Success',
+        detail: fetch.message,
+        life: 3000,
+      });
+    } else {
+      throw new Error(fetch.message)
+    }
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: formData.get('id') ? 'Update Pegawai Error' : 'Create Pegawai Error',
+      detail: error.message,
+      life: 3000,
+    })
   }
-  await fetchPegawai(meta.value.current_page);
-};
+  await fetchPegawai(meta.value.current_page)
+}
 
 const editPegawai = (data) => {
-  console.log('pegawai edit: ', data); 
-  openDialog(data);
-};
+  openDialog(data)
+}
 
-const deletePegawai = async (data) => {
-  if (confirm(`Apakah Anda yakin ingin menghapus ${data.nama}?`)) {
-    console.log('Delete Pegawai:', data);
-    alert(`Menghapus data: ${data.nama}`);
-    await fetchPegawai(meta.value.current_page);
+const deletePegawai = async (event, data) => {
+  confirm.require({
+    target: event.currentTarget,
+    message: 'Ingin Menghapus Pegawai ini?',
+    icon: 'pi pi-info-circle',
+    rejectProps: {
+      label: 'Cancel',
+      severity: 'secondary',
+      outlined: true
+    },
+    acceptProps: {
+      label: 'Delete',
+      severity: 'danger'
+    },
+    accept: async () => {
+      toast.add({
+        severity: 'info',
+        summary: 'Mengapus Pegawai Status',
+        detail: 'Harap Tunggu.....',
+        life: 0,
+      })
+      const fetch = await pegawaiStore.deletePegawai(data.id)
+      if(fetch.status === 200){
+        toast.removeAllGroups()
+        toast.add({
+          severity: 'error',
+          summary: `Mengapus Pegawai Berhasil`,
+          detail: `Menghapus ${data.nama}`,
+          life: 4000,
+        });
+        await fetchPegawai(meta.value.current_page)
+      }
+    },
+    reject: () => {
+      toast.add({ severity: 'error', summary: 'Rejected', detail: 'You have rejected', life: 3000 });
+    }
+  });
+
+}
+
+const handleExportPDF = async () => {
+  toast.add({
+    severity: 'info',
+    summary: 'PDF Status',
+    detail: 'Harap Tunggu.....',
+    life: 0,
+  })
+  const response = await pegawaiStore.exportPegawaiPdf({
+    page: meta.value.current_page,
+    per_page: meta.value.per_page,
+    search: search.value,
+    unit_kerja_id: departmentStore.unitKerjaIdSelected,
+    jabatan: departmentStore.jabatanSelected,
+  })
+
+  if (response.status === 200) {
+    toast.removeAllGroups()
+    toast.add({
+      severity: 'success',
+      summary: 'PDF Status',
+      detail: 'PDF Ready....',
+      life: 4000,
+    })
+    const blob = response.data
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `pegawai.pdf`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } else {
+    toast.add({
+      severity: 'error',
+      summary: 'Export PDF Gagal',
+      detail: response.message,
+      life: 3000,
+    });
   }
-};
+}
+
 
 watch(
   () => [departmentStore.unitKerjaIdSelected, departmentStore.jabatanSelected],
   (newVal, oldVal) => {
-    fetchPegawai(1); 
+    fetchPegawai(1)
   }
 );
 
-watchEffect(() => {
-  pegawai.value.forEach(async (p) => {
-    if (!imageSrc.value[p.id]) {
-      const url = await $pegawaiImageFetch(p.id, p.nama);
-      imageSrc.value[p.id] = url;
-    }
-  });
-})
-
 onMounted(() => {
-  fetchPegawai();
-});
+  fetchPegawai()
+})
 </script>

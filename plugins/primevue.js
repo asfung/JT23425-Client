@@ -1,6 +1,7 @@
 import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 import ToastService from 'primevue/toastservice';
+import ConfirmationService from 'primevue/confirmationservice';
 
 export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.hook('app:mounted', () => {
@@ -22,6 +23,6 @@ export default defineNuxtPlugin((nuxtApp) => {
 
       }
     }
-  }).use(ToastService);
+  }).use(ToastService).use(ConfirmationService);
 
 })
