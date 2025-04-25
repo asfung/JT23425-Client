@@ -276,9 +276,9 @@ const deletePegawai = async (event, data) => {
       }
     },
     reject: () => {
-      toast.add({ severity: 'error', summary: 'Rejected', detail: 'You have rejected', life: 3000 });
+      toast.add({ severity: 'info', summary: 'Menghapus Pegawai Status', detail: 'Batal Menghapus Pegawai', life: 3000 })
     }
-  });
+  })
 
 }
 
@@ -320,7 +320,7 @@ const handleExportPDF = async () => {
       summary: 'Export PDF Gagal',
       detail: response.message,
       life: 3000,
-    });
+    })
   }
 }
 
