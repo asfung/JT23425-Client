@@ -177,6 +177,7 @@ const fetchPegawai = async (page = 1) => {
     meta.value = response.response.data.meta
   } else {
     pegawai.value = []
+    meta.value = { total: 0 }
     console.error(response.message)
   }
   loading.value = false
@@ -328,6 +329,7 @@ const handleExportPDF = async () => {
 watch(
   () => [departmentStore.unitKerjaIdSelected, departmentStore.jabatanSelected],
   (newVal, oldVal) => {
+    console.log('test')
     fetchPegawai(1)
   }
 );

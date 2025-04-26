@@ -8,26 +8,28 @@
   >
     <div class="grid grid-cols-2 gap-4">
       <div class="flex flex-col col-span-2">
-        <label for="file">Upload File</label>
-        <div v-if="form.id || form.file" class="mb-2">
-          <img
-            :src="filePreviewUrl"
-            alt="Preview"
-            class="w-32 h-32 object-cover rounded shadow"
+        <label for="file">Upload Profile Image</label>
+        <div class="flex items-center gap-4 mt-2">
+          <div v-if="form.id || form.file">
+            <img
+              :src="filePreviewUrl"
+              alt="Preview"
+              class="w-32 h-32 object-cover rounded shadow transition-all duration-300 ease-in-out"
+            />
+          </div>
+
+          <FileUpload 
+            name="file" 
+            accept="image/*" 
+            :maxFileSize="1000000" 
+            :auto="true" 
+            :chooseLabel="'Pilih Image'"
+            :uploadLabel="'Upload'"
+            :cancelLabel="'Batal'"
+            mode="basic"
+            @select="onFileSelect"
           />
         </div>
-
-        <FileUpload 
-          name="file" 
-          accept="image/*" 
-          :maxFileSize="1000000" 
-          :auto="true" 
-          :chooseLabel="'Pilih File'"
-          :uploadLabel="'Upload'"
-          :cancelLabel="'Batal'"
-          mode="basic"
-          @select="onFileSelect"
-        />
       </div>
       <div class="flex flex-col">
         <label for="nip">NIP</label>

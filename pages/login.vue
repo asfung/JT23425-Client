@@ -3,7 +3,9 @@
     <Form 
       :resolver="resolver" 
       @submit="onFormSubmit" 
-      class="flex flex-col gap-4 w-full lg:w-[400px] sm:w-56 border-2 border-green-400 rounded p-12">
+      class="flex flex-col gap-4 w-full lg:w-[400px] sm:w-56 border-2 border-black dark:border-white rounded p-12">
+      <h1 class="flex justify-center text-2xl font-bold opacity-70">Login</h1>
+
       <FormField v-slot="$field" as="section" name="email" initialValue="admin@gmail.com" class="flex flex-col gap-2">
         <InputText type="email" placeholder="Email" />
         <Message v-if="$field?.invalid" severity="error" size="small" variant="simple">{{ $field.error?.message }}
@@ -16,12 +18,16 @@
           </Message>
         </section>
       </FormField>
-      <Button type="submit" severity="secondary" label="Submit" />
+      <Button type="submit" severity="secondary" label="Login" />
+      <p>Don't have account? <span class="hover:underline hover:cursor-pointer text-green-400" @click="$router.push('/register')">register</span></p>
     </Form>
   </div>
 </template>
 
 <script setup>
+useHead({
+  title: 'Login'
+})
 import { reactive } from 'vue'
 import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { z } from 'zod'

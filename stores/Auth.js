@@ -18,11 +18,16 @@ export const useAuthStore = defineStore('AuthStore', {
     getToken(){
       return decrypt(this.token)
     },
+    userLogout(){
+      localStorage.removeItem('token')
+      window.location.href = '/'
+    },
     async me(){
       try{
         const { $axios } = useNuxtApp()
         const response = await $axios.get('/me');
         const data = response.data
+        this.user = data
         if(response.status === 200){
           return {
             response: response,
@@ -65,13 +70,11 @@ export const useAuthStore = defineStore('AuthStore', {
         const { $axios } = useNuxtApp()
         const response = await $axios.post('/register', payload);
         const data = response.data
-        if(response.status === 200){
-          return {
-            response: response,
-            status: response.status,
-            data: data,
-            message: 'Success',
-          }
+        return {
+          response: response,
+          status: response.status,
+          data: data,
+          message: 'Success',
         }
       }catch(e){
         return {
@@ -80,6 +83,23 @@ export const useAuthStore = defineStore('AuthStore', {
           message: e.response?.data?.message || e.message || 'An error occurred'
         }
       }
-    }
+    },
+    async logout(){
+      try{
+        const { $axios } = useNuxtApp()
+        const response = await $axios.post('/logout');
+        return {
+          response: response,
+          status: response.status,
+          message: 'Success',
+        }
+      }catch(e){
+        return {
+          status: e.response?.status || 500,
+          data: null,
+          message: e.response?.data?.message || e.message || 'An error occurred'
+        }
+      }
+    },
   },
 })

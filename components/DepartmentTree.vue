@@ -16,10 +16,13 @@ import { useDepartmentStore } from '~/stores/Department'
 import { useToast } from 'primevue/usetoast'
 
 const treeData = ref([]);
-const selectedKeys = ref({ 'root-pegawai': true })
+// const selectedKeys = ref({ 'root-pegawai': true })
+const selectedKeys = ref({})
 const expandedKeys = ref({ 'root-pegawai': true })
 const departmentStore = useDepartmentStore()
 const toast = useToast()
+const route = useRoute()
+const router = useRouter()
 
 const fetchDepartmentTree = async () => {
   try {
@@ -61,24 +64,28 @@ const fetchDepartmentTree = async () => {
         children: buildTree(units),
       },
     ]
+
+    if (route.path !== '/') {
+      selectedKeys.value = null
+    } else {
+      selectedKeys.value = { 'root-pegawai': true }
+    }
+
   } catch (e) {
     console.error(e)
   }
 }
 
 const onNodeSelect = (event) => {
-  if (!event) {
-    console.warn('event not exists')
-    return;
+  if (!event) return
+  if (route.path !== '/') {
+    router.push('/')
   }
   departmentStore.setSelectedNode(event)
 };
 
 const onNodeUnselect = (event) => {
-  if (!event) {
-    console.warn('event not exists')
-    return;
-  }
+  if (!event) return
   if (event.key === 'root-pegawai') {
     selectedKeys.value = { 'root-pegawai': true }
     departmentStore.clearSelection()

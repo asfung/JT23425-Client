@@ -32,7 +32,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       const authStore = useAuthStore()
       const originalRequest = error.config
 
-      if (error.response && error.response.data.key === 'refresh-token' && error.response.status === 401 && !originalRequest._retry) {
+      if (error.response && error.response.data.key && error.response.status === 401 && !originalRequest._retry) {
         if (isRefreshing) {
           console.log('refreshing ')
           return new Promise((resolve, reject) => {
@@ -71,10 +71,8 @@ export default defineNuxtPlugin((nuxtApp) => {
             failedRequests = []
 
             return axiosInstance(originalRequest)
-          } else {
-            // temporary
-            // authStore.userLogout()
-            window.location.href = '/'
+          } else if (error.response.data.key === 'invalid-token') {
+            authStore.userLogout()
           }
         } catch (err) {
           isRefreshing = false
